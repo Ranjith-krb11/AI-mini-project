@@ -1,0 +1,3 @@
+# Ignore sensitive and unnecessary files
+.env
+data/
