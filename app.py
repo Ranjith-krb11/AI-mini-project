@@ -20,8 +20,6 @@ with st.sidebar:
             except Exception as e:
                 st.error(f"Error processing file: {e}")
                 
-    # Make sure to import this at the top of app.py if you haven't already:
-# from database.vector_db import get_or_create_collection
 
     # --- Add this inside your `with st.sidebar:` block ---
     st.divider()

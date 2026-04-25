@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Exam Revision Assistant</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="sidebar">
+        <h2>📚 Upload Notes</h2>
+
+        <input type="file" id="pdfFile" accept=".pdf">
+        <button onclick="uploadPDF()">Process Document</button>
+
+        <p id="status"></p>
+    </div>
+
+    <div class="main">
+
+        <div class="header">
+            <h1>📚 Exam Revision Assistant</h1>
+            <p>Upload notes and ask questions.</p>
+        </div>
+
+        <div class="chat-box" id="chatBox">
+            <div class="message bot">
+                Hello! Upload notes and ask me anything.
+            </div>
+        </div>
+
+        <div class="input-area">
+            <input type="text" id="userInput"
+            placeholder="Ask something...">
+
+            <button onclick="sendMessage()">Send</button>
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+function uploadPDF() {
+    let file = document.getElementById("pdfFile").files[0];
+
+    if (!file) {
+        alert("Select PDF file");
+        return;
+    }
+
+    let formData = new FormData();
+    formData.append("file", file);
+
+    fetch("/process_pdf", {
+        method: "POST",
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById("status").innerText = data.message;
+    });
+}
+
+function sendMessage() {
+    let input = document.getElementById("userInput");
+    let prompt = input.value.trim();
+
+    if (prompt === "") return;
+
+    let chatBox = document.getElementById("chatBox");
+
+    let userMsg = document.createElement("div");
+    userMsg.className = "message user";
+    userMsg.innerText = prompt;
+    chatBox.appendChild(userMsg);
+
+    let botMsg = document.createElement("div");
+    botMsg.className = "message bot";
+    botMsg.innerText = "Thinking...";
+    chatBox.appendChild(botMsg);
+
+    fetch("/chat", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({prompt: prompt})
+    })
+    .then(res => res.json())
+    .then(data => {
+        botMsg.innerText = data.response;
+    });
+
+    input.value = "";
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
+</script>
+
+</body>
+</html>
