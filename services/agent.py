@@ -3,7 +3,7 @@ from tools.retrieval import retrieve_context
 from tools.quiz import generate_quiz
 from tools.flashcards import generate_flashcards
 from tools.explain import explain_concept
-from tools.study_planner import generate_study_plan
+from tools.revision_planner import generate_revision_plan
 
 
 def run_agent(user_prompt):
@@ -22,7 +22,7 @@ def run_agent(user_prompt):
     1. quiz -> Generate quiz questions
     2. flashcards -> Generate flashcards
     3. explain -> Explain concepts simply
-    4. study_plan -> Create study schedules
+    4. revision_plan -> Create study schedules / revision plans
     5. retrieval -> Search uploaded notes
     6. general -> Normal response
 
@@ -30,7 +30,7 @@ def run_agent(user_prompt):
     {user_prompt}
 
     Reply with only one word:
-    quiz / flashcards / explain / study_plan / retrieval / general
+    quiz / flashcards / explain / revision_plan / retrieval / general
     """
 
     try:
@@ -48,8 +48,8 @@ def run_agent(user_prompt):
         elif "explain" in decision:
             return explain_concept(user_prompt)
         
-        elif "study plan" in decision or "planner" in decision:
-            return generate_study_plan(user_prompt)
+        elif "revision_plan" in decision or "plan" in decision or "schedule" in decision:
+            return generate_revision_plan(user_prompt)
 
         # TOOL 4
         elif "retrieval" in decision:

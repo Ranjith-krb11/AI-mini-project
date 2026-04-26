@@ -1,7 +1,9 @@
-streamlit
 google-generativeai
 chromadb
 pypdf2
 langchain-text-splitters
 pydantic
 python-dotenv
+fastapi
+uvicorn
+python-multipart

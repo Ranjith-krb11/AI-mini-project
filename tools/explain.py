@@ -16,10 +16,19 @@ def explain_concept(user_request):
     
     Strict Rules:
     1. Base your explanation ONLY on the provided context.
-    2. Start with a direct, simple definition of the concept.
-    3. Provide an everyday analogy to make the concept easier to understand.
-    4. Highlight 2-3 key takeaways from the text using bullet points.
-    5. Maintain an encouraging and supportive tone.
+    2. You MUST output ONLY valid JSON without any markdown formatting or code blocks (no ```json).
+    3. JSON Structure: Your response must strictly follow this JSON schema:
+    {{
+      "type": "explanation",
+      "concept": "Name of the Concept",
+      "definition": "Direct, simple definition of the concept.",
+      "analogy": "Provide an everyday analogy to make it easier to understand.",
+      "takeaways": [
+        "Key takeaway 1",
+        "Key takeaway 2",
+        "Key takeaway 3"
+      ]
+    }}
     
     UPLOADED NOTES CONTEXT:
     {context}
@@ -27,6 +36,13 @@ def explain_concept(user_request):
     
     try:
         response = llm.generate_content(prompt)
-        return response.text
+        text = response.text.strip()
+        if text.startswith("```json"):
+            text = text[7:]
+        if text.startswith("```"):
+            text = text[3:]
+        if text.endswith("```"):
+            text = text[:-3]
+        return text.strip()
     except Exception as e:
-        return f"An error occurred while explaining the concept: {str(e)}"
+        return f'{{"type": "error", "message": "An error occurred while explaining the concept: {str(e)}"}}'

@@ -18,18 +18,21 @@ def generate_quiz(user_request):
     You are an expert professor. Create a multiple-choice quiz based on this user request: "{user_request}"
     
     Strict Rules:
-    1. Quantity: Read the user's request carefully. If they ask for a specific number of questions (e.g., "5 questions"), generate exactly that many. If they do not specify a number, default to generating exactly 3 questions.
-    2. Formatting: You MUST format the questions and options exactly like this template, with each option on a new line:
-    
-       **Question 1: [Insert Question Text Here]**
-       A) [Option A text]
-       B) [Option B text]
-       C) [Option C text]
-       D) [Option D text]
-    3.Break: After question , each option must be on a new line. Do NOT put multiple options on the same line.
-    4. Blank Lines: Ensure there is a blank line between the last option of a question and the start of the next question.
-    5. Accuracy: ONLY use the information found in the provided context. Do not make up facts.
-    6. Answer Key: At the VERY BOTTOM of your response, provide an "Answer Key" with the correct answers and a 1-sentence explanation for each.
+    1. Quantity: Read the user's request carefully. If they ask for a specific number of questions, generate exactly that many. Default to 3 questions.
+    2. Formatting: You MUST output ONLY valid JSON without any markdown formatting or code blocks (no ```json). 
+    3. JSON Structure: Your response must strictly follow this JSON schema:
+    {{
+      "type": "quiz",
+      "questions": [
+        {{
+          "question": "Question text?",
+          "options": ["A) Option 1", "B) Option 2", "C) Option 3", "D) Option 4"],
+          "correct_answer": "A) Option 1",
+          "reason": "This is correct because..."
+        }}
+      ]
+    }}
+    4. Accuracy: ONLY use the information found in the provided context. Do not make up facts.
     
     UPLOADED NOTES CONTEXT:
     {context}
@@ -38,6 +41,14 @@ def generate_quiz(user_request):
     # 4. Generate the quiz
     try:
         response = llm.generate_content(prompt)
-        return response.text
+        # Clean up markdown code blocks if the LLM still returns them
+        text = response.text.strip()
+        if text.startswith("```json"):
+            text = text[7:]
+        if text.startswith("```"):
+            text = text[3:]
+        if text.endswith("```"):
+            text = text[:-3]
+        return text.strip()
     except Exception as e:
-        return f"An error occurred while generating the quiz: {str(e)}"
+        return f'{{"type": "error", "message": "An error occurred while generating the quiz: {str(e)}"}}'
