@@ -4,23 +4,32 @@ from tools.retrieval import retrieve_context
 def generate_quiz(user_request):
     """Generates a formatted multiple-choice quiz based on the syllabus."""
     
-    # 1. Fetch relevant notes (Increased to 5 chunks to support larger quizzes)
     context = retrieve_context(user_request, n_results=5)
     
     if not context:
-        return "I couldn't find enough information in your notes to make a quiz about that. Try a different topic!"
+        return '{"type": "error", "message": "I couldn\'t find enough information in your notes to make a quiz about that. Try a different topic!"}'
         
-    # 2. Initialize the AI
     llm = get_llm()
     
-    # 3. The upgraded Quiz Prompt
+    # --- THE BULLETPROOF PROMPT ---
     prompt = f"""
-    You are an expert professor. Create a multiple-choice quiz based on this user request: "{user_request}"
+    You are an expert professor evaluating study notes to create a quiz. 
     
-    Strict Rules:
-    1. Quantity: Read the user's request carefully. If they ask for a specific number of questions, generate exactly that many. Default to 3 questions.
-    2. Formatting: You MUST output ONLY valid JSON without any markdown formatting or code blocks (no ```json). 
-    3. JSON Structure: Your response must strictly follow this JSON schema:
+    Requested Topic: "{user_request}"
+    
+    UPLOADED NOTES CONTEXT:
+    {context}
+    
+    STRICT INSTRUCTIONS:
+    1. RELEVANCE CHECK FIRST: You must first read the 'UPLOADED NOTES CONTEXT'. Does it contain factual information about the Requested Topic ("{user_request}")?
+    
+    2. THE ESCAPE HATCH (Crucial): If the context is about a completely different subject (for example, if the context is about Java programming but the user asked for AI), you MUST NOT generate a quiz. You must abort and return ONLY this exact JSON:
+    {{
+      "type": "error",
+      "message": "The retrieved notes do not contain information about the requested topic."
+    }}
+    
+    3. QUIZ GENERATION: ONLY if the context is highly relevant to the Requested Topic, generate the quiz (default 3 questions unless specified). You MUST output ONLY valid JSON using this schema:
     {{
       "type": "quiz",
       "questions": [
@@ -32,23 +41,24 @@ def generate_quiz(user_request):
         }}
       ]
     }}
-    4. Accuracy: ONLY use the information found in the provided context. Do not make up facts.
     
-    UPLOADED NOTES CONTEXT:
-    {context}
+    Remember: Output ONLY valid JSON. No markdown, no explanations outside the JSON.
     """
     
-    # 4. Generate the quiz
     try:
         response = llm.generate_content(prompt)
-        # Clean up markdown code blocks if the LLM still returns them
         text = response.text.strip()
+        
+        # Clean up markdown code blocks if the LLM still returns them
         if text.startswith("```json"):
             text = text[7:]
-        if text.startswith("```"):
+        elif text.startswith("```"):
             text = text[3:]
+            
         if text.endswith("```"):
             text = text[:-3]
+            
         return text.strip()
+        
     except Exception as e:
         return f'{{"type": "error", "message": "An error occurred while generating the quiz: {str(e)}"}}'

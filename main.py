@@ -9,10 +9,9 @@ from database.vector_db import get_or_create_collection
 
 app = FastAPI(title="Exam Revision Assistant API")
 
-# Configure CORS so the React frontend can communicate with the backend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # In production, replace with frontend URL
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

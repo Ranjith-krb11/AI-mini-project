@@ -55,8 +55,6 @@ def run_agent(user_prompt):
         elif "retrieval" in decision:
             context = retrieve_context(user_prompt)
         
-        
-
             if not context:
                 return "No notes found. Please upload notes first."
 
