@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uvicorn
 
+from core.config import settings
 from services.ingestion import process_pdf
 from services.agent import run_agent
 from database.vector_db import get_or_create_collection
@@ -11,7 +12,7 @@ app = FastAPI(title="Exam Revision Assistant API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

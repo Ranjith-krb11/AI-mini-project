@@ -1,3 +1,45 @@
-# Ignore sensitive and unnecessary files
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# Environment variables
 .env
+.env.*
+!.env.example
+
+# Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Node / Frontend
+node_modules/
+dist/
+dist-ssr/
+*.local
+.npm
+
+# Databases and Vector Stores
 data/
+chroma_db/
+*.db
+*.sqlite3
+
+# Logs & testing
+*.log
+.pytest_cache/
+__coverage__/
+coverage/
+
+# OS and IDE files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo

@@ -1,54 +1,63 @@
-import os
-from dotenv import load_dotenv
-from groq import Groq
+from google import genai
+from core.config import settings
 
-# Load environment variables from the .env file
-load_dotenv()
+_client = None
 
-# Configure the Groq API
-api_key = os.getenv("GROQ_API_KEY")
-if not api_key:
-    raise ValueError("GROQ_API_KEY not found in .env file")
 
-# Initialize the standard Groq client
-client = Groq(api_key=api_key)
+def get_gemini_client():
+    global _client
+    if _client is None:
+        if not settings.GEMINI_API_KEY:
+            raise ValueError("GEMINI_API_KEY not found in environment or .env file")
+        _client = genai.Client(api_key=settings.GEMINI_API_KEY)
+    return _client
 
-class GroqWrapper:
+
+class GeminiWrapper:
     """
-    A wrapper class to make Groq's API mimic Google Gemini's syntax.
-    This dynamically handles both single string prompts and lists of prompts (system + user).
+    Wrapper so the rest of your application can continue using:
+    
+    llm.generate_content(prompt)
+    
+    and access:
+    
+    response.text
     """
-    def __init__(self, groq_client, model_name="llama-3.3-70b-versatile"):
-        self.client = groq_client
+
+    def __init__(self, client=None, model_name="gemini-2.5-flash"):
+        self._client = client
         self.model_name = model_name
-        
-    def generate_content(self, prompt):
-        messages = []
-        
-        # If the tool sends a list (e.g., in agent.py: [system_instruction, user_prompt])
-        if isinstance(prompt, list) and len(prompt) == 2:
-            messages.append({"role": "system", "content": str(prompt[0])})
-            messages.append({"role": "user", "content": str(prompt[1])})
-        # If the tool sends a single string (e.g., in quiz.py or flashcards.py)
-        else:
-            messages.append({"role": "user", "content": str(prompt)})
 
-        # Make the call to Groq
-        completion = self.client.chat.completions.create(
+    @property
+    def client(self):
+        if self._client is None:
+            self._client = get_gemini_client()
+        return self._client
+
+    def generate_content(self, prompt):
+        # If your agent sends:
+        # [system_instruction, user_prompt]
+        if isinstance(prompt, list) and len(prompt) == 2:
+            system_instruction = str(prompt[0])
+            user_prompt = str(prompt[1])
+            final_prompt = f"""
+SYSTEM INSTRUCTION:
+{system_instruction}
+
+USER PROMPT:
+{user_prompt}
+"""
+        else:
+            final_prompt = str(prompt)
+
+        response = self.client.models.generate_content(
             model=self.model_name,
-            messages=messages,
-            temperature=0.2 # Lower temperature helps keep RAG output accurate and grounded
+            contents=final_prompt
         )
-        
-        response_text = completion.choices[0].message.content
-        
-        # Create a mock response object that has a .text property, just like Gemini
-        class MockGeminiResponse:
-            def __init__(self, text):
-                self.text = text
-                
-        return MockGeminiResponse(response_text)
+
+        return response
+
 
 def get_llm():
-    """Returns the wrapped Groq model, applicable for all tools."""
-    return GroqWrapper(client)
+    """Returns Gemini model wrapper used by all tools."""
+    return GeminiWrapper()
