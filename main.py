@@ -3,12 +3,23 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uvicorn
 
+from contextlib import asynccontextmanager
 from core.config import settings
+from database.database import init_db
+from api.auth import router as auth_router
 from services.ingestion import process_pdf
 from services.agent import run_agent
 from database.vector_db import get_or_create_collection
 
-app = FastAPI(title="Exam Revision Assistant API")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Initialize SQL database tables
+    init_db()
+    yield
+
+
+app = FastAPI(title="Exam Revision Assistant API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -17,6 +28,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include Routers
+app.include_router(auth_router)
 
 class ChatRequest(BaseModel):
     prompt: str
