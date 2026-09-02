@@ -57,6 +57,35 @@ export const fetchCurrentUser = async (token) => {
   return await response.json();
 };
 
+// ================= DOCUMENT MANAGEMENT APIS =================
+
+export const fetchUserDocuments = async (token) => {
+  const response = await fetch(`${API_BASE_URL}/documents`, {
+    headers: getAuthHeaders(token),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || "Failed to fetch user documents");
+  }
+
+  return await response.json();
+};
+
+export const deleteDocument = async (documentId, token) => {
+  const response = await fetch(`${API_BASE_URL}/documents/${documentId}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(token),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || "Failed to delete document");
+  }
+
+  return await response.json();
+};
+
 // ================= APPLICATION APIS =================
 
 export const uploadPdf = async (file, token) => {

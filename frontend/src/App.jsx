@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { AuthModal } from './components/AuthModal';
 import { FileUpload } from './components/FileUpload';
+import { DocumentManagement } from './components/DocumentManagement';
 import { AdminPanel } from './components/AdminPanel';
 import { ChatInterface } from './components/ChatInterface';
 import './index.css';
@@ -10,10 +11,16 @@ function MainLayout() {
   const { user, isAuthenticated, logout, loading } = useAuth();
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState('login');
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [sidebarTab, setSidebarTab] = useState('documents'); // 'documents' | 'database'
 
   const openAuth = (mode = 'login') => {
     setAuthMode(mode);
     setAuthModalOpen(true);
+  };
+
+  const handleDocumentsChanged = () => {
+    setRefreshTrigger((prev) => prev + 1);
   };
 
   return (
@@ -64,9 +71,35 @@ function MainLayout() {
 
       <main className="app-main">
         <aside className="sidebar">
-          <FileUpload />
-          <div className="divider"></div>
-          <AdminPanel />
+          <div className="sidebar-tabs">
+            <button
+              className={`sidebar-tab ${sidebarTab === 'documents' ? 'active' : ''}`}
+              onClick={() => setSidebarTab('documents')}
+            >
+              📁 Documents
+            </button>
+            <button
+              className={`sidebar-tab ${sidebarTab === 'database' ? 'active' : ''}`}
+              onClick={() => setSidebarTab('database')}
+            >
+              🔍 Vector DB
+            </button>
+          </div>
+
+          {sidebarTab === 'documents' ? (
+            <div className="sidebar-tab-content">
+              <FileUpload onUploadSuccess={handleDocumentsChanged} />
+              <div className="divider"></div>
+              <DocumentManagement
+                refreshTrigger={refreshTrigger}
+                onDocumentsChanged={handleDocumentsChanged}
+              />
+            </div>
+          ) : (
+            <div className="sidebar-tab-content">
+              <AdminPanel />
+            </div>
+          )}
         </aside>
 
         <section className="main-content">
