@@ -1,35 +1,32 @@
+from typing import Optional, Tuple, List, Dict, Any
 from core.llm_setup import get_llm
-from tools.retrieval import retrieve_context
+from tools.retrieval import retrieve_context_with_citations
 
-def generate_quiz(user_request):
-    """Generates a formatted multiple-choice quiz based on the syllabus."""
-    
-    context = retrieve_context(user_request, n_results=5)
-    
-    if not context:
-        return '{"type": "error", "message": "I couldn\'t find enough information in your notes to make a quiz about that. Try a different topic!"}'
-        
+
+def generate_quiz(
+    user_request: str,
+    user_id: Optional[int] = None
+) -> Tuple[str, List[Dict[str, Any]]]:
+    """
+    Generates a formatted multiple-choice quiz based on context,
+    returning strict JSON and citation metadata.
+    """
+    context, citations = retrieve_context_with_citations(user_request, user_id=user_id, n_results=5)
     llm = get_llm()
-    
-    # --- THE BULLETPROOF PROMPT ---
+
+    context_prompt = f"UPLOADED NOTES CONTEXT:\n{context}" if context else "No uploaded notes available. Generate a general academic quiz on the topic."
+
     prompt = f"""
-    You are an expert professor evaluating study notes to create a quiz. 
-    
+    You are an expert professor preparing a multiple-choice practice quiz for a student.
+
     Requested Topic: "{user_request}"
-    
-    UPLOADED NOTES CONTEXT:
-    {context}
-    
-    STRICT INSTRUCTIONS:
-    1. RELEVANCE CHECK FIRST: You must first read the 'UPLOADED NOTES CONTEXT'. Does it contain factual information about the Requested Topic ("{user_request}")?
-    
-    2. THE ESCAPE HATCH (Crucial): If the context is about a completely different subject (for example, if the context is about Java programming but the user asked for AI), you MUST NOT generate a quiz. You must abort and return ONLY this exact JSON:
-    {{
-      "type": "error",
-      "message": "The retrieved notes do not contain information about the requested topic."
-    }}
-    
-    3. QUIZ GENERATION: ONLY if the context is highly relevant to the Requested Topic, generate the quiz (default 3 questions unless specified). You MUST output ONLY valid JSON using this schema:
+
+    {context_prompt}
+
+    Instructions:
+    1. Generate 3 multiple choice questions (or the number requested by the user).
+    2. If context is provided, base questions strictly on facts from the context.
+    3. Output ONLY valid JSON matching this schema:
     {{
       "type": "quiz",
       "questions": [
@@ -37,28 +34,22 @@ def generate_quiz(user_request):
           "question": "Question text?",
           "options": ["A) Option 1", "B) Option 2", "C) Option 3", "D) Option 4"],
           "correct_answer": "A) Option 1",
-          "reason": "This is correct because..."
+          "reason": "Clear explanation of why this answer is correct."
         }}
       ]
     }}
-    
-    Remember: Output ONLY valid JSON. No markdown, no explanations outside the JSON.
+    4. Do NOT output markdown code blocks. Output ONLY raw JSON.
     """
-    
+
     try:
         response = llm.generate_content(prompt)
         text = response.text.strip()
-        
-        # Clean up markdown code blocks if the LLM still returns them
         if text.startswith("```json"):
             text = text[7:]
         elif text.startswith("```"):
             text = text[3:]
-            
         if text.endswith("```"):
             text = text[:-3]
-            
-        return text.strip()
-        
+        return text.strip(), citations
     except Exception as e:
-        return f'{{"type": "error", "message": "An error occurred while generating the quiz: {str(e)}"}}'
+        return f'{{"type": "error", "message": "An error occurred while generating the quiz: {str(e)}"}}', citations

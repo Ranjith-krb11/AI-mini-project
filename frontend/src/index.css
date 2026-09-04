@@ -1325,3 +1325,225 @@ body {
   border-radius: 6px;
   font-size: 0.8rem;
 }
+
+/* ================= CHAT LAYOUT & CONVERSATION HISTORY ================= */
+
+.chat-interface-wrapper {
+  padding: 0 !important;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.chat-layout {
+  display: flex;
+  height: 650px;
+  width: 100%;
+}
+
+.chat-history-sidebar {
+  width: 240px;
+  background: rgba(0, 0, 0, 0.25);
+  border-right: 1px solid var(--surface-border);
+  display: flex;
+  flex-direction: column;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.chat-history-sidebar.collapsed {
+  display: none;
+}
+
+.history-sidebar-header {
+  padding: 0.85rem;
+  border-bottom: 1px solid var(--surface-border);
+}
+
+.new-chat-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  color: #818cf8;
+  font-weight: 600;
+  font-size: 0.85rem;
+  padding: 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.new-chat-btn:hover {
+  background: rgba(99, 102, 241, 0.22);
+}
+
+.history-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.history-empty {
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  padding: 1.5rem 0.5rem;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: 1px solid transparent;
+}
+
+.history-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+}
+
+.history-item.active {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: rgba(99, 102, 241, 0.3);
+  color: #ffffff;
+}
+
+.history-icon {
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.history-title {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.history-delete-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0.15rem 0.25rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.history-item:hover .history-delete-btn {
+  opacity: 1;
+}
+
+.history-delete-btn:hover {
+  color: #ef4444;
+}
+
+.chat-main-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.chat-area-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--surface-border);
+}
+
+.toggle-history-btn {
+  background: transparent;
+  border: 1px solid var(--surface-border);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.toggle-history-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--primary-color);
+}
+
+.chat-loading-history {
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  padding: 2rem;
+}
+
+.message-content-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 85%;
+}
+
+.citations-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.25rem;
+  padding-left: 0.25rem;
+}
+
+.citations-header {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #a1a1aa;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.citation-icon {
+  color: #818cf8;
+}
+
+.citations-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.citation-pill {
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  color: #c7d2fe;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.2rem 0.55rem;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  transition: border-color 0.15s ease;
+}
+
+.citation-pill:hover {
+  border-color: #818cf8;
+  color: #ffffff;
+}

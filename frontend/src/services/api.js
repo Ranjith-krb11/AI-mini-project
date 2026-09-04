@@ -57,6 +57,65 @@ export const fetchCurrentUser = async (token) => {
   return await response.json();
 };
 
+// ================= CONVERSATION & CHAT HISTORY APIS =================
+
+export const fetchConversations = async (token) => {
+  const response = await fetch(`${API_BASE_URL}/conversations`, {
+    headers: getAuthHeaders(token),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || "Failed to fetch conversations");
+  }
+
+  return await response.json();
+};
+
+export const createConversation = async (title, token) => {
+  const response = await fetch(`${API_BASE_URL}/conversations`, {
+    method: "POST",
+    headers: getAuthHeaders(token, {
+      "Content-Type": "application/json",
+    }),
+    body: JSON.stringify({ title }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || "Failed to create conversation");
+  }
+
+  return await response.json();
+};
+
+export const fetchConversation = async (conversationId, token) => {
+  const response = await fetch(`${API_BASE_URL}/conversations/${conversationId}`, {
+    headers: getAuthHeaders(token),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || "Failed to fetch conversation messages");
+  }
+
+  return await response.json();
+};
+
+export const deleteConversation = async (conversationId, token) => {
+  const response = await fetch(`${API_BASE_URL}/conversations/${conversationId}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(token),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || "Failed to delete conversation");
+  }
+
+  return await response.json();
+};
+
 // ================= DOCUMENT MANAGEMENT APIS =================
 
 export const fetchUserDocuments = async (token) => {
@@ -116,13 +175,16 @@ export const fetchDatabaseContents = async (token) => {
   return await response.json();
 };
 
-export const sendChatMessage = async (prompt, token) => {
+export const sendChatMessage = async (prompt, token, conversationId = null) => {
   const response = await fetch(`${API_BASE_URL}/chat`, {
     method: "POST",
     headers: getAuthHeaders(token, {
       "Content-Type": "application/json",
     }),
-    body: JSON.stringify({ prompt }),
+    body: JSON.stringify({
+      prompt,
+      conversation_id: conversationId
+    }),
   });
 
   if (!response.ok) {

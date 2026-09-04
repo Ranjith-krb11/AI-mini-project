@@ -1,3 +1,4 @@
+import json
 from typing import Optional
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, UploadFile, File, HTTPException, Depends
@@ -8,10 +9,12 @@ from sqlalchemy.orm import Session
 
 from core.config import settings
 from database.database import init_db, get_db
-from database.models import User
+from database.models import User, Conversation, Message
 from core.security import get_optional_current_user
 from api.auth import router as auth_router
 from api.documents import router as documents_router
+from api.conversations import router as conversations_router
+from schemas.chat import ChatRequest, ChatResponse
 from services.ingestion import process_pdf
 from services.agent import run_agent
 from database.vector_db import get_or_create_collection
@@ -37,10 +40,7 @@ app.add_middleware(
 # Include Routers
 app.include_router(auth_router)
 app.include_router(documents_router)
-
-
-class ChatRequest(BaseModel):
-    prompt: str
+app.include_router(conversations_router)
 
 
 @app.post("/api/upload")
@@ -102,11 +102,86 @@ def get_database_contents(
         raise HTTPException(status_code=500, detail=f"Error fetching database: {str(e)}")
 
 
-@app.post("/api/chat")
-def chat(request: ChatRequest):
+@app.post("/api/chat", response_model=ChatResponse)
+def chat(
+    request: ChatRequest,
+    current_user: Optional[User] = Depends(get_optional_current_user),
+    db: Session = Depends(get_db)
+):
     try:
-        response = run_agent(request.prompt)
-        return {"response": response}
+        user_id = current_user.id if current_user else None
+        conversation_id = request.conversation_id
+        history = []
+        active_conversation = None
+
+        if user_id:
+            # If conversation_id is provided, find it
+            if conversation_id:
+                active_conversation = (
+                    db.query(Conversation)
+                    .filter(Conversation.id == conversation_id, Conversation.user_id == user_id)
+                    .first()
+                )
+            
+            # If no conversation exists or invalid ID, create one
+            if not active_conversation:
+                # Truncate prompt for title
+                auto_title = request.prompt.strip()[:40] + ("..." if len(request.prompt.strip()) > 40 else "")
+                active_conversation = Conversation(
+                    user_id=user_id,
+                    title=auto_title or "Study Session"
+                )
+                db.add(active_conversation)
+                db.commit()
+                db.refresh(active_conversation)
+
+            conversation_id = active_conversation.id
+
+            # Load recent messages for conversational context
+            recent_msgs = (
+                db.query(Message)
+                .filter(Message.conversation_id == conversation_id)
+                .order_by(Message.created_at.asc())
+                .all()
+            )
+            for m in recent_msgs[-6:]:
+                history.append({"role": m.role, "content": m.content})
+
+            # Save incoming User message to PostgreSQL
+            user_msg = Message(
+                conversation_id=conversation_id,
+                role="user",
+                content=request.prompt
+            )
+            db.add(user_msg)
+            db.commit()
+
+        # Run the LLM tool-routing agent
+        response_text, citations = run_agent(
+            user_prompt=request.prompt,
+            user_id=user_id,
+            chat_history=history
+        )
+
+        if user_id and active_conversation:
+            # Save Assistant response with JSON citations to PostgreSQL
+            assistant_msg = Message(
+                conversation_id=conversation_id,
+                role="assistant",
+                content=response_text,
+                sources=json.dumps(citations) if citations else None
+            )
+            db.add(assistant_msg)
+            db.commit()
+
+        return {
+            "response": response_text,
+            "conversation_id": conversation_id or "",
+            "sources": citations or []
+        }
+
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error generating response: {str(e)}")
 

@@ -1,78 +1,108 @@
+from typing import Optional, List, Dict, Any, Tuple
 from core.llm_setup import get_llm
-from tools.retrieval import retrieve_context
+from tools.retrieval import retrieve_context_with_citations
 from tools.quiz import generate_quiz
 from tools.flashcards import generate_flashcards
 from tools.explain import explain_concept
 from tools.revision_planner import generate_revision_plan
 
 
-def run_agent(user_prompt):
+def run_agent(
+    user_prompt: str,
+    user_id: Optional[int] = None,
+    chat_history: Optional[List[Dict[str, str]]] = None
+) -> Tuple[str, List[Dict[str, Any]]]:
     """
-    Advanced Agentic AI:
-    Uses LLM to understand intent, choose tool,
-    reason, and generate final answer.
+    LLM-powered tool-routing agent:
+    - Incorporates chat history for conversational continuity
+    - Routes intent to specialized study tools (quiz, flashcards, explain, revision_plan, retrieval, general)
+    - Enforces user-isolated vector context
+    - Returns: (response_text_or_json, source_citations)
     """
-
     llm = get_llm()
 
+    # Format recent conversation history (last 4 turns) for context
+    history_summary = ""
+    if chat_history and len(chat_history) > 0:
+        recent_turns = chat_history[-4:]
+        history_lines = []
+        for turn in recent_turns:
+            role = "User" if turn.get("role") == "user" else "Assistant"
+            content = str(turn.get("content", ""))[:150]
+            history_lines.append(f"{role}: {content}")
+        history_summary = "Recent Conversation Context:\n" + "\n".join(history_lines) + "\n\n"
+
     tool_selector_prompt = f"""
-    You are an intelligent AI agent.
+    You are an intelligent AI exam revision agent.
 
-    Available tools:
-    1. quiz -> Generate quiz questions
-    2. flashcards -> Generate flashcards
-    3. explain -> Explain concepts simply
-    4. revision_plan -> Create study schedules / revision plans
-    5. retrieval -> Search uploaded notes
-    6. general -> Normal response
-
-    User Request:
+    {history_summary}Current User Request:
     {user_prompt}
 
-    Reply with only one word:
+    Available Tools:
+    1. quiz -> Generate practice multiple-choice quiz questions
+    2. flashcards -> Generate interactive revision flashcards
+    3. explain -> Explain concepts, break down complex topics, or list key points/takeaways
+    4. revision_plan -> Create day-by-day study schedules / revision plans
+    5. retrieval -> Search and answer specific questions from uploaded notes
+    6. general -> General academic conversation or greetings
+
+    Reply with ONLY the tool name in lowercase:
     quiz / flashcards / explain / revision_plan / retrieval / general
     """
 
     try:
         decision = llm.generate_content(tool_selector_prompt).text.strip().lower()
 
-        # TOOL 1
+        # 1. QUIZ GENERATION
         if "quiz" in decision:
-            return generate_quiz(user_prompt)
+            return generate_quiz(user_prompt, user_id=user_id)
 
-        # TOOL 2
-        elif "flashcards" in decision:
-            return generate_flashcards(user_prompt)
+        # 2. FLASHCARDS
+        elif "flashcards" in decision or "flashcard" in decision:
+            return generate_flashcards(user_prompt, user_id=user_id)
 
-        # TOOL 3
+        # 3. EXPLAIN / SUMMARIZE / KEY POINTS
         elif "explain" in decision:
-            return explain_concept(user_prompt)
-        
-        elif "revision_plan" in decision or "plan" in decision or "schedule" in decision:
-            return generate_revision_plan(user_prompt)
+            return explain_concept(user_prompt, user_id=user_id)
 
-        # TOOL 4
-        elif "retrieval" in decision:
-            context = retrieve_context(user_prompt)
-        
+        # 4. REVISION PLANNER
+        elif "revision_plan" in decision or "plan" in decision or "schedule" in decision:
+            return generate_revision_plan(user_prompt, user_id=user_id)
+
+        # 5. RETRIEVAL / Q&A FROM UPLOADED NOTES
+        elif "retrieval" in decision or "search" in decision or "note" in decision:
+            # If follow up, augment search query with recent context
+            search_query = user_prompt
+            if history_summary and len(user_prompt.split()) < 5:
+                search_query = f"{recent_turns[-1].get('content', '')} {user_prompt}"
+
+            context, citations = retrieve_context_with_citations(search_query, user_id=user_id, n_results=4)
+
             if not context:
-                return "No notes found. Please upload notes first."
+                # Fallback to general LLM response with no citations
+                fallback_prompt = f"{history_summary}User: {user_prompt}"
+                response = llm.generate_content(fallback_prompt)
+                return response.text, []
 
             final_prompt = f"""
-            Answer using only this context:
+            You are a helpful academic study assistant. Answer the user's question accurately using the context from their uploaded notes.
 
+            {history_summary}UPLOADED NOTES CONTEXT:
             {context}
 
-            Question: {user_prompt}
+            User Question: {user_prompt}
+
+            Answer clearly and concisely. Reference specific points from the context where appropriate.
             """
 
             response = llm.generate_content(final_prompt)
-            return response.text
+            return response.text, citations
 
-        # TOOL 5
+        # 6. GENERAL RESPONSE
         else:
-            response = llm.generate_content(user_prompt)
-            return response.text
+            general_prompt = f"{history_summary}User Question: {user_prompt}"
+            response = llm.generate_content(general_prompt)
+            return response.text, []
 
     except Exception as e:
-        return f"Error: {str(e)}"
+        return f"Error processing request: {str(e)}", []
