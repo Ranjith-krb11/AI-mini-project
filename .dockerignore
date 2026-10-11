@@ -1,0 +1,30 @@
+# Git & Version Control
+.git/
+.gitignore
+
+# Virtual Environments & Python
+venv/
+.venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+*.log
+
+# Databases & Local Vector storage
+data/
+*.db
+*.sqlite3
+
+# Environment Variables & Secrets
+.env
+.env.*
+!.env.example
+
+# Node / Frontend
+node_modules/
+frontend/node_modules/
+frontend/dist/
+dist/
